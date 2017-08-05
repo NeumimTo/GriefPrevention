@@ -85,6 +85,8 @@ import org.spongepowered.api.event.Order;
 import org.spongepowered.api.event.action.InteractEvent;
 import org.spongepowered.api.event.block.InteractBlockEvent;
 import org.spongepowered.api.event.cause.Cause;
+import org.spongepowered.api.event.cause.EventContext;
+import org.spongepowered.api.event.cause.EventContextKeys;
 import org.spongepowered.api.event.cause.NamedCause;
 import org.spongepowered.api.event.cause.entity.damage.source.DamageSource;
 import org.spongepowered.api.event.cause.entity.spawn.EntitySpawnCause;
@@ -1113,22 +1115,18 @@ public class PlayerEventHandler {
 
     // when a player drops an item
     @Listener(order = Order.FIRST, beforeModifications = true)
-    public void onPlayerDispenseItem(DropItemEvent.Dispense event, @Root EntitySpawnCause spawncause) {
+    public void onPlayerDispenseItem(DropItemEvent.Dispense event, @Root Entity spawncause) {
         GPTimings.PLAYER_DISPENSE_ITEM_EVENT.startTimingIfSync();
-        if (event.getCause().containsNamed("InventoryClose")) {
+        final Cause cause = event.getCause();
+
+        if (!(spawncause instanceof User)) {
             GPTimings.PLAYER_DISPENSE_ITEM_EVENT.stopTimingIfSync();
             return;
         }
 
-        Entity entity = spawncause.getEntity();
-        if (!(entity instanceof User)) {
-            GPTimings.PLAYER_DISPENSE_ITEM_EVENT.stopTimingIfSync();
-            return;
-        }
-
-        Object source = event.getCause().root();
-        User user = (User) entity;
-        final World world = entity.getWorld();
+        Object source = cause.root();
+        User user = (User) spawncause;
+        final World world = spawncause.getWorld();
         if (!GriefPreventionPlugin.instance.claimsEnabledForWorld(world.getProperties())) {
             GPTimings.PLAYER_DISPENSE_ITEM_EVENT.stopTimingIfSync();
             return;
@@ -1194,7 +1192,7 @@ public class PlayerEventHandler {
                     return;
                 } else if (perm == Tristate.FALSE) {
                     event.setCancelled(true);
-                    if (entity instanceof Player) {
+                    if (spawncause instanceof Player) {
                         GriefPreventionPlugin.sendClaimDenyMessage(claim, player, GriefPreventionPlugin.instance.messageData.permissionItemDrop.toText());
                     }
                     GPTimings.PLAYER_DISPENSE_ITEM_EVENT.stopTimingIfSync();
@@ -1323,10 +1321,12 @@ public class PlayerEventHandler {
             return;
         }
 
-        final BlockSnapshot blockSnapshot = event.getCause().get(NamedCause.HIT_TARGET, BlockSnapshot.class).orElse(BlockSnapshot.NONE);
+        final Cause cause = event.getCause();
+        final EventContext context = cause.getContext();
+        final BlockSnapshot blockSnapshot = context.get(EventContextKeys.HIT_TARGET, BlockSnapshot.class).orElse(BlockSnapshot.NONE);
         final GPPlayerData playerData = this.dataStore.getOrCreatePlayerData(world, player.getUniqueId());
         final Vector3d interactPoint = event.getInteractionPoint().orElse(null);
-        final Entity entity = event.getCause().get(NamedCause.HIT_TARGET, Entity.class).orElse(null);
+        final Entity entity = ((Cause) cause).get(NamedCause.HIT_TARGET, Entity.class).orElse(null);
         final Location<World> location = entity != null ? entity.getLocation() : interactPoint != null ? new Location<World>(world, interactPoint) : player.getLocation();
         final GPClaim claim = this.dataStore.getClaimAtPlayer(playerData, location, false);
         final ItemType playerItem = event.getItemStack().getType();

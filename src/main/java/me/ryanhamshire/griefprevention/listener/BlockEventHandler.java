@@ -101,24 +101,25 @@ public class BlockEventHandler {
     @Listener(order = Order.FIRST, beforeModifications = true)
     public void onBlockPre(ChangeBlockEvent.Pre event) {
         GPTimings.BLOCK_PRE_EVENT.startTimingIfSync();
-        User user = event.getCause().first(User.class).orElse(null);
+        final Cause cause = event.getCause();
+        User user = cause.first(User.class).orElse(null);
         if (user != null) {
-            if (event.getCause().containsNamed(NamedCause.PLAYER_BREAK) && !event.getCause().containsNamed(NamedCause.FAKE_PLAYER)) {
+            if (cause.containsNamed(NamedCause.PLAYER_BREAK) && !cause.containsNamed(NamedCause.FAKE_PLAYER)) {
                 GPTimings.BLOCK_PRE_EVENT.stopTimingIfSync();
                 return;
             }
-            if (event.getCause().containsNamed(NamedCause.PISTON_RETRACT)) {
+            if (cause.containsNamed(NamedCause.PISTON_RETRACT)) {
                 GPTimings.BLOCK_PRE_EVENT.stopTimingIfSync();
                 return;
             }
         }
 
-        LocatableBlock locatableBlock = event.getCause().first(LocatableBlock.class).orElse(null);
-        TileEntity tileEntity = event.getCause().first(TileEntity.class).orElse(null);
-        Object rootCause = event.getCause().root();
+        LocatableBlock locatableBlock = cause.first(LocatableBlock.class).orElse(null);
+        TileEntity tileEntity = cause.first(TileEntity.class).orElse(null);
+        Object rootCause = cause.root();
         Location<World> sourceLocation = locatableBlock != null ? locatableBlock.getLocation() : tileEntity != null ? tileEntity.getLocation() : null;
-        boolean hasFakePlayer = event.getCause().containsNamed("FakePlayer");
-        final boolean pistonExtend = event.getCause().containsNamed(NamedCause.PISTON_EXTEND);
+        boolean hasFakePlayer = cause.containsNamed("FakePlayer");
+        final boolean pistonExtend = cause.containsNamed(NamedCause.PISTON_EXTEND);
 
         if (sourceLocation != null) {
             if (!GriefPreventionPlugin.instance.claimsEnabledForWorld(sourceLocation.getExtent().getProperties())) {
@@ -145,7 +146,7 @@ public class BlockEventHandler {
                         return;
                     }
                 }
-                if (event.getCause().containsNamed(NamedCause.FIRE_SPREAD)) {
+                if (cause.containsNamed(NamedCause.FIRE_SPREAD)) {
                     if (GPPermissionHandler.getClaimPermission(event, location, targetClaim, GPPermissions.FIRE_SPREAD, rootCause, location.getBlock(), user, true) == Tristate.FALSE) {
                         event.setCancelled(true);
                         GPTimings.BLOCK_PRE_EVENT.stopTimingIfSync();
@@ -175,7 +176,7 @@ public class BlockEventHandler {
                     return;
                 }
 
-                if (event.getCause().containsNamed(NamedCause.FIRE_SPREAD)) {
+                if (cause.containsNamed(NamedCause.FIRE_SPREAD)) {
                     if (GPPermissionHandler.getClaimPermission(event, location, targetClaim, GPPermissions.FIRE_SPREAD, rootCause, location.getBlock(), user, true) == Tristate.FALSE) {
                         event.setCancelled(true);
                         GPTimings.BLOCK_PRE_EVENT.stopTimingIfSync();
